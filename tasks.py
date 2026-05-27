@@ -8,10 +8,10 @@ from RPA.Archive import Archive
 
 @task
 def init():
-    # browser.configure(slowmo=1000)
-    # open_browser()
-    # dowload_csv()
-    # get_oders()
+    browser.configure(slowmo=1000)
+    open_browser()
+    dowload_csv()
+    get_oders()
     archive_receipts()
 
 
