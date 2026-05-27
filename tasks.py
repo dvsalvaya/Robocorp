@@ -1,62 +1,68 @@
-import http
-
 from robocorp.tasks import task
 from robocorp import browser
 
-from RPA.HTTP import HTTP
 from RPA.Tables import Tables
+from RPA.HTTP import HTTP
 from RPA.PDF import PDF
+from RPA.Archive import Archive
 
 @task
-def robot():
-    """Insert the sales data for the week and export it as a PDF"""
-    browser.configure(
-        slowmo=1500,
-    )
-    open_web()
-    log_in()
-    get_orders()
+def init():
+    # browser.configure(slowmo=1000)
+    # open_browser()
+    # dowload_csv()
+    # get_oders()
+    archive_receipts()
 
-def open_web():
-    """Navigates to the given URL"""
+
+def open_browser():
+    """Abre o navegador e acessa a página de pedidos de robôs."""
     browser.goto("https://robotsparebinindustries.com/#/robot-order")
 
 def log_in():
-    """Fills in the login form and clicks the 'Log in' button"""
     page = browser.page()
-    page.click("text=ok")
+    page.click("button:text('OK')")
 
-
-
-def get_orders():
-    """get csv file from the given URL"""
+def dowload_csv():
     http = HTTP()
-    http.download("https://robotsparebinindustries.com/orders.csv", overwrite=True)
-    library = Tables()
+    http.download("https://robotsparebinindustries.com/orders.csv")
 
-    orders = library.read_table_from_csv("orders.csv")
-
+def get_oders():
+    lib = Tables()
+    orders = lib.read_table_from_csv("orders.csv", columns=["Order number","Head","Body","Legs","Address"])
     for order in orders:
-        insert_data(order)
-    
+        log_in()
+        preencher(order)
+        log_out()
 
-def insert_data(order):
-    """Fills in the sales data and click the 'Submit' button"""
+
+def preencher(order):
 
     page = browser.page()
+    page.select_option("#head", order['Head'])
+    page.check(f"input[value='{order['Body']}']")
+    page.get_by_placeholder("Enter the part number for the legs").fill(order['Legs'])
+    page.fill("#address",str(order['Address']))
+    page.click("button:text('ORDER')")
 
-    page.select_option("#head", order["Head"])
-
-    page.check(f'input[value="{order["Body"]}"]')
-
-    page.get_by_label("3. Legs:").fill(str(order["Legs"]))
-
-    page.fill("#address", order["Address"])
-
-    page.click("text=Order")
-
-def store_receipt_as_pdf(order_number):
-    """Take a screenshot of the page and save it as a PDF"""
-    page = browser.page()
     pdf = PDF()
-    pdf.create_pdf_from_page(page, f"receipt_{order_number}.pdf")
+    sales_results_html = page.locator("#order-completion").inner_html()
+    pdf.html_to_pdf(sales_results_html,f"recipts/order_{order['Order number']}.pdf")
+    
+    page.screenshot(path=f"recipts/robo_{order['Order number']}.png")
+
+
+def log_out():
+    page = browser.page()
+    page.click("button:text('ORDER ANOTHER ROBOT')")
+
+def get_pdf():
+    page = browser.page()
+    
+def archive_receipts():
+    lib = Archive()
+
+    lib.archive_folder_with_zip(
+        folder="recipts/",
+        archive_name="recipts.zip"
+    )
